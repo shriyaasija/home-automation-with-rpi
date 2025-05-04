@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Fan & Bulb Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #e0eafc, #cfdef3);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      color: #333;
+    }
+
+    .button {
+      padding: 12px 24px;
+      margin: 10px;
+      border: none;
+      border-radius: 10px;
+      background-color: #1976d2;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      transition: background-color 0.3s, transform 0.2s;
+    }
+
+    .button:hover {
+      transform: scale(1.05);
+    }
+
+    .status {
+      margin-left: 15px;
+      font-weight: bold;
+    }
+
+    canvas {
+      margin-top: 30px;
+      max-width: 700px;
+      display: none;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    #showGraphBtn {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Home Automation</h1>
+
+  <div class="control-group">
+    <button id="fanBtn" class="button">Turn Fan On</button>
+    <span id="fanStatus" class="status">Fan is Off</span>
+  </div>
+
+  <div class="control-group">
+    <button id="bulbBtn" class="button">Turn Bulb On</button>
+    <span id="bulbStatus" class="status">Bulb is Off</span>
+  </div>
+
+  <button id="showGraphBtn" class="button">View Graph</button>
+  <canvas id="utilGraph" width="700" height="400"></canvas>
+
+  <script>
+    let fanOn = false, bulbOn = false;
+    let fanTime = 0, bulbTime = 0;
+    let fanInterval, bulbInterval;
+    const labels = [], fanData = [], bulbData = [];
+
+    const fanBtn = document.getElementById("fanBtn");
+    const bulbBtn = document.getElementById("bulbBtn");
+    const fanStatus = document.getElementById("fanStatus");
+    const bulbStatus = document.getElementById("bulbStatus");
+    const showGraphBtn = document.getElementById("showGraphBtn");
+    const canvas = document.getElementById("utilGraph");
+
+    fanBtn.onclick = () => {
+      if (!fanOn) {
+        fetch("/fan/FAN_ON").then(res => res.text()).then(console.log).catch(alert);
+        fanOn = true;
+        fanTime = 0;
+        fanBtn.textContent = "Turn Fan Off";
+        fanStatus.textContent = "Fan is On (0s)";
+        fanBtn.style.backgroundColor = "#4CAF50"; // Green
+        fanInterval = setInterval(() => {
+          fanTime++;
+          fanStatus.textContent = `Fan is On (${fanTime}s)`;
+        }, 1000);
+      } else {
+        fetch("/fan/FAN_OFF").then(res => res.text()).then(console.log).catch(alert);
+        fanOn = false;
+        clearInterval(fanInterval);
+        recordUtilization("Fan", fanTime);
+        fanBtn.textContent = "Turn Fan On";
+        fanStatus.textContent = "Fan is Off";
+        fanBtn.style.backgroundColor = "#1976d2"; // Blue
+      }
+    };
+
+    bulbBtn.onclick = () => {
+      if (!bulbOn) {
+        fetch("/light/LIGHT_ON").then(res => res.text()).then(console.log).catch(alert);
+        bulbOn = true;
+        bulbTime = 0;
+        bulbBtn.textContent = "Turn Bulb Off";
+        bulbStatus.textContent = "Bulb is On (0s)";
+        bulbBtn.style.backgroundColor = "#4CAF50"; // Green
+        bulbInterval = setInterval(() => {
+          bulbTime++;
+          bulbStatus.textContent = `Bulb is On (${bulbTime}s)`;
+        }, 1000);
+      } else {
+        fetch("/light/LIGHT_OFF").then(res => res.text()).then(console.log).catch(alert);
+        bulbOn = false;
+        clearInterval(bulbInterval);
+        recordUtilization("Bulb", bulbTime);
+        bulbBtn.textContent = "Turn Bulb On";
+        bulbStatus.textContent = "Bulb is Off";
+        bulbBtn.style.backgroundColor = "#1976d2"; // Blue
+      }
+    };
+
+    function recordUtilization(device, seconds) {
+      const minutes = (seconds / 60).toFixed(2);
+      const timeLabel = new Date().toLocaleTimeString();
+      labels.push(timeLabel);
+      if (device === "Fan") {
+        fanData.push(parseFloat(minutes));
+        bulbData.push(0);
+      } else {
+        bulbData.push(parseFloat(minutes));
+        fanData.push(0);
+      }
+    }
+
+    showGraphBtn.onclick = () => {
+      canvas.style.display = "block";
+      new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Fan (minutes)',
+              data: fanData,
+              backgroundColor: 'rgba(33, 150, 243, 0.7)',
+              borderColor: 'rgba(33, 150, 243, 1)',
+              borderWidth: 1
+            },
+            {
+              label: 'Bulb (minutes)',
+              data: bulbData,
+              backgroundColor: 'rgba(255, 193, 7, 0.7)',
+              borderColor: 'rgba(255, 193, 7, 1)',
+              borderWidth: 1
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Minutes'
+              }
+            },
+            x: {
+              title: {
+                display: true,
+                text: 'Time'
+              }
+            }
+          }
+        }
+      });
+    };
+  </script>
+</body>
+</html>
