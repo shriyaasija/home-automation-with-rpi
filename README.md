@@ -17,8 +17,6 @@ A local, low-latency home automation system built with Raspberry Pi, Node.js, an
 - [Usage](#usage)
 - [API Endpoints](#api-endpoints)
 - [Project Structure](#project-structure)
-- [Future Scope](#future-scope)
-- [Contributing](#contributing)
 - [Authors](#authors)
 
 ## Overview
